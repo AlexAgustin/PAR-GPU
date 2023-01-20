@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include "ds.h"
 #include "nn.h"
 #include "nn_aux.h"
@@ -10,6 +12,7 @@
 #include "test.h"
 #include "train.h"
 #include "globals.h"
+#include "matrix.cuh"
 
 void init_nn(nn_t *nn, int n_layers, int *layers_size){
 
@@ -98,6 +101,62 @@ void test(nn_t *nn, ds_t *ds){
     // Precision
     // Recall
     // F1
+}
+
+#endif
+
+#ifdef GPU
+
+void train(nn_t *nn, ds_t *ds, int epochs, int size_batch, double lr){
+
+    int i, n, x, n_batches, min_batch;
+    double **A, **Z, **D, **d;;
+    int *order;
+    double loss;
+    struct timespec t1, t2;
+    clockid_t clk_id = CLOCK_MONOTONIC;
+
+    order = gpuErrchk(int*)cudaMalloc(ds->n_samples * sizeof(int)));
+    
+    //TODO cambiar estas 4 lineas
+    A = alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
+    Z = alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
+    D = alloc_matrix_2v(nn->n_layers - 1, &(nn->layers_size[1]), &(nn->layers_size[0]), init_zero);
+    d = alloc_matrix_1v(nn->n_layers - 1, &(nn->layers_size[1]), init_zero);
+    
+    n_batches = ds->n_samples / size_batch;
+
+    for(i = 0; i < ds->n_samples; i++)
+        order[i] = i;
+    
+    for (n=0; n < epochs;n++) {
+            
+        if(verbose)
+            printf("Epoch %d/%d \n", n, epochs);
+        
+        loss = 0.0;
+        shuffle(order, ds->n_samples);
+
+        clock_gettime(clk_id, &t1);
+
+        for (x = 0; x < n_batches; x++) {
+            for(min_batch = (x * size_batch); min_batch < ((x + 1) * size_batch); min_batch++){
+            
+                i = order[min_batch];
+                forward_pass(nn, &ds->inputs[i * ds->n_inputs], A, Z); 
+                loss += back_prop(nn, &ds->outputs[i * ds->n_outputs], A, Z, D, d);
+            }
+            
+            update(nn, D, d, lr, size_batch);
+        }
+
+        clock_gettime(clk_id, &t2);
+
+        if(verbose)
+            printf(" time: %ld us - loss: %.*f\n", diff_time(t2, t1), 12, loss / ds->n_samples);
+
+    }
+
 }
 
 #endif

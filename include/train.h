@@ -5,6 +5,8 @@
 #include "nn_aux.h"
 #include "ds.h"
 #include "matrix.h"
+#include "matrix.cuh"
+
 
 void forward_pass(nn_t *nn, double *input, double **A, double **Z);
 

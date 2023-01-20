@@ -1,6 +1,6 @@
-#ifdef CPU
-
 #include "train.h"
+
+#ifdef CPU
 
 void forward_pass(nn_t *nn, double *input, double **A, double **Z){
 
@@ -81,4 +81,40 @@ void update(nn_t *nn, double **D, double **d, double lr, int batch_size){
     }
 }
 
+#endif
+
+#ifdef GPU
+
+void forward_pass(nn_t *nn, double *input, double **A, double **Z){
+
+    int i;
+
+    for(i = 0; i < nn->layers_size[0]; i++){
+        A[0][i] = input[i];
+    }
+    
+    for(i = 1; i < nn->n_layers; i++){
+
+        gpu_matrix_mul_add(Z[i], nn->WH[i - 1], A[i - 1],  nn->layers_size[i], nn->layers_size[i - 1], nn->layers_size[i - 1], 1, nn->BH[i - 1]);  
+        gpu_matrix_func(A[i], Z[i], nn->layers_size[i], 1, nn->activation_ptr[i - 1]);
+        gpu_matrix_func(Z[i], Z[i], nn->layers_size[i], 1, nn->dactivation_ptr[i - 1]);
+    }
+}
+
+
+
+void update(nn_t *nn, double **D, double **d, double lr, int batch_size){
+
+    int i;
+
+    for(i = 0; i < nn->n_layers - 1; i++){
+
+        gpu_matrix_mul_cnt(D[i], nn->layers_size[i + 1], nn->layers_size[i],  lr * (1.0 / batch_size));
+        gpu_matrix_mul_cnt(d[i], nn->layers_size[i + 1], 1,  lr * (1.0 / batch_size));
+        gpu_matrix_sub(nn->WH[i], nn->WH[i], D[i],  nn->layers_size[i + 1], nn->layers_size[i]);
+        gpu_matrix_sub(nn->BH[i], nn->BH[i], d[i],  nn->layers_size[i + 1], 1);
+        gpu_matrix_zero(D[i], nn->layers_size[i + 1], nn->layers_size[i]);
+        gpu_matrix_zero(d[i], nn->layers_size[i + 1], 1);
+    }
+}
 #endif
