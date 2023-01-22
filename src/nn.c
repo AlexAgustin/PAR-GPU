@@ -117,7 +117,7 @@ void train(nn_t *nn, ds_t *ds, int epochs, int size_batch, double lr){
     clockid_t clk_id = CLOCK_MONOTONIC;
 
     order = (int*)malloc(ds->n_samples * sizeof(int));
-    
+
     A = gpu_alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
     Z = gpu_alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
     D = gpu_alloc_matrix_2v(nn->n_layers - 1, &(nn->layers_size[1]), &(nn->layers_size[0]), init_zero);

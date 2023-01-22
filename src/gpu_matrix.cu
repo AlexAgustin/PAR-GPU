@@ -192,8 +192,11 @@ double **gpu_alloc_matrix_1v(int n_layers, int *size, double (*init_weight_ptr)(
     cudaCheckError();
 
     for (i = 0; i < n_layers; i++) {
+
+printf("Hasta aqui funciona todo bien, vamos a por el cudaMalloc de d_m[i]==>%p\n", &d_m[i]);
         // Reserve memory for each layer on device
         cudaMalloc(&d_m[i], size[i] * sizeof(double));
+printf("El cudaMalloc de d_m[i] se ha hecho==>\n");
         cudaCheckError();
     }
 
