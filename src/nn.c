@@ -12,7 +12,7 @@
 #include "test.h"
 #include "train.h"
 #include "globals.h"
-#include "matrix.cuh"
+#include "gpu_matrix.cuh"
 
 void init_nn(nn_t *nn, int n_layers, int *layers_size){
 
@@ -116,13 +116,12 @@ void train(nn_t *nn, ds_t *ds, int epochs, int size_batch, double lr){
     struct timespec t1, t2;
     clockid_t clk_id = CLOCK_MONOTONIC;
 
-    order = gpuErrchk(int*)cudaMalloc(ds->n_samples * sizeof(int)));
+    order = (int*)malloc(ds->n_samples * sizeof(int));
     
-    //TODO cambiar estas 4 lineas
-    A = alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
-    Z = alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
-    D = alloc_matrix_2v(nn->n_layers - 1, &(nn->layers_size[1]), &(nn->layers_size[0]), init_zero);
-    d = alloc_matrix_1v(nn->n_layers - 1, &(nn->layers_size[1]), init_zero);
+    A = gpu_alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
+    Z = gpu_alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero); 
+    D = gpu_alloc_matrix_2v(nn->n_layers - 1, &(nn->layers_size[1]), &(nn->layers_size[0]), init_zero);
+    d = gpu_alloc_matrix_1v(nn->n_layers - 1, &(nn->layers_size[1]), init_zero);
     
     n_batches = ds->n_samples / size_batch;
 
@@ -157,6 +156,23 @@ void train(nn_t *nn, ds_t *ds, int epochs, int size_batch, double lr){
 
     }
 
+}
+
+void test(nn_t *nn, ds_t *ds){
+    
+    int i;
+    double **A;
+
+    A = gpu_alloc_matrix_1v(nn->n_layers, nn->layers_size, init_zero);
+
+    for(i = 0; i < ds->n_samples; i++){
+
+        forward_pass_test(nn, &ds->inputs[i * ds->n_inputs], A);
+    }
+
+    // Precision
+    // Recall
+    // F1
 }
 
 #endif

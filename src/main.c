@@ -7,7 +7,7 @@
 #include "globals.h"
 
 int main(int argc, char **argv) {
-
+    printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     ds_t ds;
     nn_t nn;
     
@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
 
     if(train_mode){
         srand(seed);
+        
         read_csv(dataset, &ds, layers[0], layers[n_layers - 1]);
         init_nn(&nn, n_layers, layers);
         train(&nn, &ds, epochs, batches, lr);

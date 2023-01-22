@@ -113,8 +113,8 @@ double back_prop(nn_t *nn, double *output, double **A, double **Z, double **D, d
     l_s = nn->layers_size;
 
     //TODO las de aloccate las dejo para el final
-    D_aux = alloc_matrix_2v(n_l - 1, &(l_s[1]), &(l_s[0]), init_zero);
-    E = alloc_matrix_1v(n_l - 1, &(l_s[1]), init_zero);
+    D_aux = gpu_alloc_matrix_2v(n_l - 1, &(l_s[1]), &(l_s[0]), init_zero);
+    E = gpu_alloc_matrix_1v(n_l - 1, &(l_s[1]), init_zero);
 
     loss = nn->loss(A[n_l - 1], output, l_s[n_l - 1]);
 
@@ -126,21 +126,21 @@ double back_prop(nn_t *nn, double *output, double **A, double **Z, double **D, d
     gpu_matrix_mul(D_aux[n_l - 2], E[n_l - 2], T, l_s[n_l - 1], 1, 1, l_s[n_l - 2]);
     gpu_matrix_free(T);
 
-    matrix_sum(D[n_l - 2], D[n_l - 2], D_aux[n_l - 2], l_s[n_l - 1], l_s[n_l - 2]);
-    matrix_sum(d[n_l - 2], d[n_l - 2], E[n_l - 2], l_s[n_l - 1], 1);
+    gpu_matrix_sum(D[n_l - 2], D[n_l - 2], D_aux[n_l - 2], l_s[n_l - 1], l_s[n_l - 2]);
+    gpu_matrix_sum(d[n_l - 2], d[n_l - 2], E[n_l - 2], l_s[n_l - 1], 1);
 
     for (i = n_l - 2; i > 0; i--) {
             
-        T = matrix_transpose(nn->WH[i], l_s[i + 1], l_s[i]);
-        matrix_mul(E[i - 1], T, E[i], l_s[i], l_s[i + 1], l_s[i + 1], 1);
-        matrix_free(T);
+        T = gpu_matrix_transpose(nn->WH[i], l_s[i + 1], l_s[i]);
+        gpu_matrix_mul(E[i - 1], T, E[i], l_s[i], l_s[i + 1], l_s[i + 1], 1);
+        gpu_matrix_free(T);
 
-        matrix_mul_dot(E[i - 1], E[i - 1], Z[i], l_s[i], 1);
+        gpu_matrix_mul_dot(E[i - 1], E[i - 1], Z[i], l_s[i], 1);
 
-        matrix_mul(D_aux[i - 1], E[i - 1], A[i - 1], l_s[i], 1, 1, l_s[i - 1]);
+        gpu_matrix_mul(D_aux[i - 1], E[i - 1], A[i - 1], l_s[i], 1, 1, l_s[i - 1]);
 
-        matrix_sum(D[i - 1], D[i - 1], D_aux[i - 1], l_s[i], l_s[i - 1]);
-        matrix_sum(d[i - 1], d[i - 1], E[i - 1], l_s[i], 1);
+        gpu_matrix_sum(D[i - 1], D[i - 1], D_aux[i - 1], l_s[i], l_s[i - 1]);
+        gpu_matrix_sum(d[i - 1], d[i - 1], E[i - 1], l_s[i], 1);
     }
 
     matrix_free_2D(D_aux, n_l - 1);
